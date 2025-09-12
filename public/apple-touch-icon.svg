@@ -1,0 +1,28 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with rounded corners for iOS -->
+  <rect width="180" height="180" rx="40" ry="40" fill="url(#gradient)"/>
+  
+  <!-- Heart icon (larger for touch icon) -->
+  <path d="M90 135C90 135 56.25 101.25 56.25 78.75C56.25 68.75 63.125 61.875 73.125 61.875C80.625 61.875 85.625 66.25 90 70.625C94.375 66.25 99.375 61.875 106.875 61.875C116.875 61.875 123.75 68.75 123.75 78.75C123.75 101.25 90 135 90 135Z" fill="white" stroke="white" stroke-width="3" stroke-linejoin="round"/>
+  
+  <!-- Blockchain connection dots (larger) -->
+  <circle cx="45" cy="45" r="6" fill="white" opacity="0.8"/>
+  <circle cx="135" cy="45" r="6" fill="white" opacity="0.8"/>
+  <circle cx="45" cy="135" r="6" fill="white" opacity="0.8"/>
+  <circle cx="135" cy="135" r="6" fill="white" opacity="0.8"/>
+  
+  <!-- Connection lines -->
+  <path d="M45 45L90 90M135 45L90 90M45 135L90 90M135 135L90 90" stroke="white" stroke-width="3" opacity="0.6"/>
+  
+  <!-- Center connection point -->
+  <circle cx="90" cy="90" r="9" fill="white" opacity="0.9"/>
+  
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EC4899;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
