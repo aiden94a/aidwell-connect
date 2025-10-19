@@ -158,8 +158,8 @@ const NGODashboard = () => {
     return <div>Loading NGO information...</div>;
   }
 
-  // If no NGO info exists, show registration form
-  if (!ngoData) {
+  // If no NGO info exists or NGO data is empty, show registration form
+  if (!ngoData || !ngoData.name || ngoData.name.trim() === '') {
     return (
       <div className="space-y-6">
         <Card className="p-6 shadow-card">
