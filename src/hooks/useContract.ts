@@ -96,9 +96,12 @@ export const useAidWellContract = () => {
       console.log('📊 Contract call parameters:', {
         recipient,
         amountHandle: handles[0],
+        amountHandleType: typeof handles[0],
+        amountHandleLength: handles[0].length,
         expiryTime,
         purpose,
-        proofLength: proof.length
+        proofLength: proof.length,
+        proofType: typeof proof
       });
 
       const result = await writeContractAsync({
