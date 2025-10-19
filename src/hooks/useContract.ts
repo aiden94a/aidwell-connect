@@ -58,10 +58,13 @@ export const useAidWellContract = () => {
       console.log('🔄 Step 1: Creating encrypted input...');
       const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
       
-      console.log('🔄 Step 2: Adding amount to encrypted input...');
+      console.log('🔄 Step 2: Adding recipient address to encrypted input...');
+      input.addAddress(recipient);
+      
+      console.log('🔄 Step 3: Adding amount to encrypted input...');
       input.add32(BigInt(amount));
       
-      console.log('🔄 Step 3: Encrypting data...');
+      console.log('🔄 Step 4: Encrypting data...');
       const encryptedInput = await input.encrypt();
       console.log('✅ Encryption completed, handles count:', encryptedInput.handles.length);
 
@@ -92,23 +95,21 @@ export const useAidWellContract = () => {
       const proof = `0x${Array.from(encryptedInput.inputProof as Uint8Array)
         .map(b => b.toString(16).padStart(2, '0')).join('')}`;
 
-      console.log('🔄 Step 4: Calling contract...');
+      console.log('🔄 Step 5: Calling contract...');
       console.log('📊 Contract call parameters:', {
         recipient,
-        amountHandle: handles[0],
-        amountHandleType: typeof handles[0],
-        amountHandleLength: handles[0].length,
+        recipientHandle: handles[0],
+        amountHandle: handles[1],
         expiryTime,
         purpose,
-        proofLength: proof.length,
-        proofType: typeof proof
+        proofLength: proof.length
       });
 
       const result = await writeContractAsync({
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: AidWellConnect.abi,
         functionName: 'createVoucher',
-        args: [recipient, handles[0], BigInt(expiryTime), purpose, proof],
+        args: [handles[0], handles[1], BigInt(expiryTime), purpose, proof],
       } as any);
 
       console.log('✅ Voucher creation successful!');

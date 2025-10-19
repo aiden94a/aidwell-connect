@@ -146,7 +146,7 @@ contract AidWellConnect is SepoliaConfig {
     }
     
     function createDistribution(
-        address[] memory recipients,
+        externalEaddress[] memory recipients,
         externalEuint32[] memory amounts,
         string memory purpose,
         bytes calldata inputProof
@@ -194,7 +194,7 @@ contract AidWellConnect is SepoliaConfig {
     
     function getVoucherInfo(uint256 voucherId) public view returns (
         uint8 amount,
-        uint8 expiryTime,
+        uint256 expiryTime,
         address recipient,
         address ngo,
         bool isRedeemed,
@@ -205,8 +205,8 @@ contract AidWellConnect is SepoliaConfig {
         AidVoucher storage voucher = vouchers[voucherId];
         return (
             0, // FHE.decrypt(voucher.amount) - will be decrypted off-chain
-            0, // FHE.decrypt(voucher.expiryTime) - will be decrypted off-chain
-            voucher.recipient,
+            voucher.expiryTime, // Public expiry time
+            address(0), // voucher.recipient is encrypted, return 0 address
             voucher.ngo,
             voucher.isRedeemed,
             voucher.isActive,
@@ -270,8 +270,8 @@ contract AidWellConnect is SepoliaConfig {
     // New functions for FHE data access
     function getVoucherEncryptedData(uint256 voucherId) public view returns (
         euint32 amount,
-        euint32 expiryTime,
-        address recipient,
+        uint256 expiryTime,
+        eaddress recipient,
         address ngo,
         bool isRedeemed,
         bool isActive,
