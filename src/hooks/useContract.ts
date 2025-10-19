@@ -69,15 +69,30 @@ export const useAidWellContract = () => {
       console.log('✅ Encryption completed, handles count:', encryptedInput.handles.length);
 
 
-      // 直接使用handles，不需要转换为hex字符串
+      // Convert Uint8Array handles to 32-byte hex strings for externalEaddress/externalEuint32
+      const convertToBytes32 = (handle: Uint8Array): string => {
+        const hex = `0x${Array.from(handle)
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('')}`;
+        // Ensure exactly 32 bytes (66 characters including 0x)
+        if (hex.length < 66) {
+          return hex.padEnd(66, '0');
+        } else if (hex.length > 66) {
+          return hex.substring(0, 66);
+        }
+        return hex;
+      };
+
+      const recipientHandle = convertToBytes32(encryptedInput.handles[0]);
+      const amountHandle = convertToBytes32(encryptedInput.handles[1]);
       const proof = `0x${Array.from(encryptedInput.inputProof as Uint8Array)
         .map(b => b.toString(16).padStart(2, '0')).join('')}`;
 
       console.log('🔄 Step 5: Calling contract...');
       console.log('📊 Contract call parameters:', {
         recipient,
-        recipientHandle: encryptedInput.handles[0],
-        amountHandle: encryptedInput.handles[1],
+        recipientHandle,
+        amountHandle,
         expiryTime,
         purpose,
         proofLength: proof.length
@@ -87,7 +102,7 @@ export const useAidWellContract = () => {
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: AidWellConnect.abi,
         functionName: 'createVoucher',
-        args: [encryptedInput.handles[0], encryptedInput.handles[1], BigInt(expiryTime), purpose, proof],
+        args: [recipientHandle, amountHandle, BigInt(expiryTime), purpose, proof],
       } as any);
 
       console.log('✅ Voucher creation successful!');
