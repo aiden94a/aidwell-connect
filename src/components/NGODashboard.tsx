@@ -138,14 +138,14 @@ const NGODashboard = () => {
       setExpiryDays("30"); // Reset to default
 
       toast({
-        title: "Voucher Distributed",
-        description: `Encrypted voucher has been sent to the recipient. Expires in ${days} days.`,
+        title: "Aid Voucher Created",
+        description: `Encrypted aid voucher has been created for the recipient. Expires in ${days} days.`,
       });
     } catch (error) {
       console.error('Error distributing voucher:', error);
       toast({
         title: "Error",
-        description: "Failed to distribute voucher. Please try again.",
+        description: "Failed to create aid voucher. Please try again.",
         variant: "destructive",
       });
     }
@@ -283,7 +283,7 @@ const NGODashboard = () => {
           <div className="p-2 bg-hope-soft rounded-lg">
             <Send className="h-5 w-5 text-hope" />
           </div>
-          <h3 className="font-semibold text-xl">Distribute Aid Voucher</h3>
+          <h3 className="font-semibold text-xl">Create Aid Voucher</h3>
         </div>
 
         <div className="grid gap-4">
@@ -299,16 +299,16 @@ const NGODashboard = () => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="amount">Voucher Amount (Encrypted)</Label>
+            <Label htmlFor="amount">Aid Value Units (Encrypted)</Label>
             <Input
               id="amount"
-              placeholder="Enter amount"
+              placeholder="Enter aid value units (e.g., 100)"
               value={voucherAmount}
               onChange={(e) => setVoucherAmount(e.target.value)}
             />
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Shield className="h-3 w-3" />
-              Amount will be encrypted before distribution
+              Aid value units will be encrypted (not actual currency)
             </p>
           </div>
 
@@ -344,7 +344,7 @@ const NGODashboard = () => {
             className="w-full bg-hope hover:bg-hope/90 text-hope-foreground"
           >
             <Plus className="h-4 w-4 mr-2" />
-            {isPending ? "Distributing..." : "Distribute Encrypted Voucher"}
+            {isPending ? "Creating Aid Voucher..." : "Create Encrypted Aid Voucher"}
           </Button>
         </div>
       </Card>
