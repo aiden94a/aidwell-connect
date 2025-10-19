@@ -68,38 +68,16 @@ export const useAidWellContract = () => {
       const encryptedInput = await input.encrypt();
       console.log('✅ Encryption completed, handles count:', encryptedInput.handles.length);
 
-      // Convert handles to proper format (32 bytes hex)
-      const convertHex = (handle: any): string => {
-        let hex = '';
-        if (handle instanceof Uint8Array) {
-          hex = `0x${Array.from(handle).map(b => b.toString(16).padStart(2, '0')).join('')}`;
-        } else if (typeof handle === 'string') {
-          hex = handle.startsWith('0x') ? handle : `0x${handle}`;
-        } else if (Array.isArray(handle)) {
-          hex = `0x${handle.map(b => b.toString(16).padStart(2, '0')).join('')}`;
-        } else {
-          hex = `0x${handle.toString()}`;
-        }
-        
-        // Ensure exactly 32 bytes (66 characters including 0x)
-        if (hex.length < 66) {
-          hex = hex.padEnd(66, '0');
-        } else if (hex.length > 66) {
-          hex = hex.substring(0, 66);
-        }
-        return hex;
-      };
 
-      // 转换handles为十六进制字符串（Uint8Array不能直接传递给合约）
-      const handles = encryptedInput.handles.map(convertHex);
+      // 直接使用handles，不需要转换为hex字符串
       const proof = `0x${Array.from(encryptedInput.inputProof as Uint8Array)
         .map(b => b.toString(16).padStart(2, '0')).join('')}`;
 
       console.log('🔄 Step 5: Calling contract...');
       console.log('📊 Contract call parameters:', {
         recipient,
-        recipientHandle: handles[0],
-        amountHandle: handles[1],
+        recipientHandle: encryptedInput.handles[0],
+        amountHandle: encryptedInput.handles[1],
         expiryTime,
         purpose,
         proofLength: proof.length
@@ -109,7 +87,7 @@ export const useAidWellContract = () => {
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: AidWellConnect.abi,
         functionName: 'createVoucher',
-        args: [handles[0], handles[1], BigInt(expiryTime), purpose, proof],
+        args: [encryptedInput.handles[0], encryptedInput.handles[1], BigInt(expiryTime), purpose, proof],
       } as any);
 
       console.log('✅ Voucher creation successful!');
