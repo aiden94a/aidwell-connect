@@ -1,5 +1,5 @@
 export const AidWellConnect = {
-  address: '0x2C71Ec0Eda008054Fe266a162133b189cf31c1Ef',
+  address: '0x5dcBE795df61A9cc7086fDC2554785857fc8CC65',
   abi: [
   {
     "inputs": [
