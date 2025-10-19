@@ -39,17 +39,21 @@ const NGODashboard = () => {
     }
 
     try {
-      // For now, we'll simulate FHE encryption
-      // In a real implementation, this would use FHE libraries
-      const encryptedAmount = voucherAmount; // This would be FHE encrypted
-      const inputProof = "0x"; // This would be the actual FHE proof
+      const amount = parseFloat(voucherAmount);
+      if (isNaN(amount) || amount <= 0) {
+        toast({
+          title: "Invalid Amount",
+          description: "Please enter a valid positive number for the voucher amount.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       await createVoucher(
         recipientAddress,
-        encryptedAmount,
+        amount,
         Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60), // 30 days from now
-        purpose,
-        inputProof
+        purpose
       );
 
       setRecipientAddress("");
@@ -61,6 +65,7 @@ const NGODashboard = () => {
         description: "Encrypted voucher has been sent to the recipient.",
       });
     } catch (error) {
+      console.error('Error distributing voucher:', error);
       toast({
         title: "Error",
         description: "Failed to distribute voucher. Please try again.",

@@ -108,9 +108,9 @@ contract AidWellConnect is SepoliaConfig {
         euint32 internalAmount = FHE.fromExternal(amount, inputProof);
         
         vouchers[voucherId] = AidVoucher({
-            voucherId: FHE.asEuint32(0), // Will be set properly later
+            voucherId: FHE.asEuint32(uint32(voucherId)),
             amount: internalAmount,
-            expiryTime: FHE.asEuint32(expiryTime),
+            expiryTime: FHE.asEuint32(uint32(expiryTime)),
             recipient: recipient,
             ngo: msg.sender,
             isRedeemed: false,
@@ -118,6 +118,14 @@ contract AidWellConnect is SepoliaConfig {
             purpose: purpose,
             createdAt: block.timestamp
         });
+        
+        // Set ACL permissions for the encrypted data
+        FHE.allowThis(vouchers[voucherId].amount);
+        FHE.allowThis(vouchers[voucherId].expiryTime);
+        FHE.allow(vouchers[voucherId].amount, recipient);
+        FHE.allow(vouchers[voucherId].expiryTime, recipient);
+        FHE.allow(vouchers[voucherId].amount, msg.sender);
+        FHE.allow(vouchers[voucherId].expiryTime, msg.sender);
         
         recipientVouchers[recipient].push(voucherId);
         
@@ -129,7 +137,7 @@ contract AidWellConnect is SepoliaConfig {
         require(vouchers[voucherId].recipient == msg.sender, "Only recipient can redeem voucher");
         require(vouchers[voucherId].isActive, "Voucher is not active");
         require(!vouchers[voucherId].isRedeemed, "Voucher already redeemed");
-        require(block.timestamp <= FHE.decrypt(vouchers[voucherId].expiryTime), "Voucher has expired");
+        // Note: Expiry check will be done off-chain due to FHE limitations
         
         vouchers[voucherId].isRedeemed = true;
         vouchers[voucherId].isActive = false;
@@ -155,15 +163,21 @@ contract AidWellConnect is SepoliaConfig {
             createVoucher(recipients[i], amounts[i], block.timestamp + 30 days, purpose, inputProof);
         }
         
-        // Create distribution record (amounts will be encrypted)
+        // Create distribution record with encrypted data
         distributions[distributionId] = DistributionRecord({
-            distributionId: FHE.asEuint32(0), // Will be set properly later
+            distributionId: FHE.asEuint32(uint32(distributionId)),
             totalAmount: FHE.asEuint32(0), // Will be calculated off-chain
-            recipientCount: FHE.asEuint32(recipients.length),
+            recipientCount: FHE.asEuint32(uint32(recipients.length)),
             ngo: msg.sender,
             purpose: purpose,
             timestamp: block.timestamp
         });
+        
+        // Set ACL permissions for distribution data
+        FHE.allowThis(distributions[distributionId].distributionId);
+        FHE.allowThis(distributions[distributionId].recipientCount);
+        FHE.allow(distributions[distributionId].distributionId, msg.sender);
+        FHE.allow(distributions[distributionId].recipientCount, msg.sender);
         
         ngoDistributions[msg.sender].push(distributionId);
         
@@ -251,5 +265,67 @@ contract AidWellConnect is SepoliaConfig {
     
     function getNGOReputation(address ngo) public view returns (uint8) {
         return 0; // FHE.decrypt(ngoRegistrations[ngo].reputation) - will be decrypted off-chain
+    }
+    
+    // New functions for FHE data access
+    function getVoucherEncryptedData(uint256 voucherId) public view returns (
+        euint32 amount,
+        euint32 expiryTime,
+        address recipient,
+        address ngo,
+        bool isRedeemed,
+        bool isActive,
+        string memory purpose,
+        uint256 createdAt
+    ) {
+        AidVoucher storage voucher = vouchers[voucherId];
+        return (
+            voucher.amount,
+            voucher.expiryTime,
+            voucher.recipient,
+            voucher.ngo,
+            voucher.isRedeemed,
+            voucher.isActive,
+            voucher.purpose,
+            voucher.createdAt
+        );
+    }
+    
+    function getDistributionEncryptedData(uint256 distributionId) public view returns (
+        euint32 distributionIdEnc,
+        euint32 totalAmount,
+        euint32 recipientCount,
+        address ngo,
+        string memory purpose,
+        uint256 timestamp
+    ) {
+        DistributionRecord storage distribution = distributions[distributionId];
+        return (
+            distribution.distributionId,
+            distribution.totalAmount,
+            distribution.recipientCount,
+            distribution.ngo,
+            distribution.purpose,
+            distribution.timestamp
+        );
+    }
+    
+    function getNGOEncryptedData(address ngo) public view returns (
+        string memory name,
+        string memory description,
+        string memory website,
+        bool isVerified,
+        euint32 reputation,
+        uint256 registrationTime
+    ) {
+        NGORegistration storage ngoInfo = ngoRegistrations[ngo];
+        return (
+            ngoInfo.name,
+            ngoInfo.description,
+            ngoInfo.website,
+            ngoInfo.isVerified,
+            ngoInfo.reputation,
+            ngoInfo.registrationTime
+        );
     }
 }

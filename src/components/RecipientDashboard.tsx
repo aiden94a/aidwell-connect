@@ -1,21 +1,47 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Gift, Clock, CheckCircle, Shield } from "lucide-react";
+import { Gift, Clock, CheckCircle, Shield, Eye, EyeOff } from "lucide-react";
 import { useAccount } from 'wagmi';
 import { useRecipientVouchers, useAidWellContract } from "@/hooks/useContract";
+import { useZamaInstance } from "@/hooks/useZamaInstance";
 import WalletConnect from "./WalletConnect";
+import { useState, useEffect } from "react";
 
 const RecipientDashboard = () => {
   const { address } = useAccount();
   const { data: voucherIds, isLoading } = useRecipientVouchers(address || '');
-  const { redeemVoucher, isPending } = useAidWellContract();
+  const { redeemVoucher, isPending, decryptVoucherData } = useAidWellContract();
+  const { instance } = useZamaInstance();
+  const [decryptedVouchers, setDecryptedVouchers] = useState<any[]>([]);
+  const [decrypting, setDecrypting] = useState<Record<number, boolean>>({});
 
   const handleRedeemVoucher = async (voucherId: number) => {
     try {
       await redeemVoucher(voucherId);
     } catch (error) {
       console.error('Error redeeming voucher:', error);
+    }
+  };
+
+  const handleDecryptVoucher = async (voucherId: number) => {
+    if (!instance) {
+      alert('Encryption service not available');
+      return;
+    }
+
+    setDecrypting(prev => ({ ...prev, [voucherId]: true }));
+    try {
+      const decryptedData = await decryptVoucherData(voucherId);
+      setDecryptedVouchers(prev => ({
+        ...prev,
+        [voucherId]: decryptedData
+      }));
+    } catch (error) {
+      console.error('Error decrypting voucher:', error);
+      alert('Failed to decrypt voucher data');
+    } finally {
+      setDecrypting(prev => ({ ...prev, [voucherId]: false }));
     }
   };
 
@@ -103,8 +129,23 @@ const RecipientDashboard = () => {
                   <Shield className="h-3 w-3 text-muted-foreground" />
                   <span className="text-muted-foreground">Amount: </span>
                   <code className="font-mono bg-muted px-2 py-1 rounded text-xs">
-                    {voucher.amount}
+                    {decryptedVouchers[parseInt(voucher.id)]?.amount || voucher.amount}
                   </code>
+                  {!decryptedVouchers[parseInt(voucher.id)] && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDecryptVoucher(parseInt(voucher.id))}
+                      disabled={decrypting[parseInt(voucher.id)] || !instance}
+                      className="ml-2"
+                    >
+                      {decrypting[parseInt(voucher.id)] ? (
+                        <EyeOff className="h-3 w-3" />
+                      ) : (
+                        <Eye className="h-3 w-3" />
+                      )}
+                    </Button>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">{voucher.timestamp}</span>
