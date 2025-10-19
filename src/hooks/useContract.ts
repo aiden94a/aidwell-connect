@@ -87,14 +87,14 @@ export const useAidWellContract = () => {
         return hex;
       };
 
-      const handles = encryptedInput.handles.map(convertHex);
-      const proof = `0x${Array.from(encryptedInput.inputProof as Uint8Array)
-        .map(b => b.toString(16).padStart(2, '0')).join('')}`;
+      // 直接使用handles，不进行convertHex转换（参考fhed-shield-secure）
+      const handles = encryptedInput.handles;
+      const proof = encryptedInput.inputProof;
 
       console.log('🔄 Step 4: Calling contract...');
       console.log('📊 Contract call parameters:', {
         recipient,
-        amountHandle: handles[0].substring(0, 10) + '...',
+        amountHandle: handles[0],
         expiryTime,
         purpose,
         proofLength: proof.length
