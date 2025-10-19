@@ -87,23 +87,28 @@ export const useAidWellContract = () => {
         return hex;
       };
 
-      // 参考SecretBox实现：直接使用handles和inputProof
+      // 转换handles为十六进制字符串（Uint8Array不能直接传递给合约）
+      const handles = encryptedInput.handles.map(convertHex);
+      const proof = `0x${Array.from(encryptedInput.inputProof as Uint8Array)
+        .map(b => b.toString(16).padStart(2, '0')).join('')}`;
+
       console.log('🔄 Step 4: Calling contract...');
       console.log('📊 Contract call parameters:', {
         recipient,
-        amountHandle: encryptedInput.handles[0],
-        amountHandleType: typeof encryptedInput.handles[0],
+        amountHandle: handles[0],
+        amountHandleType: typeof handles[0],
+        amountHandleLength: handles[0].length,
         expiryTime,
         purpose,
-        proofLength: encryptedInput.inputProof.length,
-        proofType: typeof encryptedInput.inputProof
+        proofLength: proof.length,
+        proofType: typeof proof
       });
 
       const result = await writeContractAsync({
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: AidWellConnect.abi,
         functionName: 'createVoucher',
-        args: [recipient, encryptedInput.handles[0], BigInt(expiryTime), purpose, encryptedInput.inputProof],
+        args: [recipient, handles[0], BigInt(expiryTime), purpose, proof],
       } as any);
 
       console.log('✅ Voucher creation successful!');

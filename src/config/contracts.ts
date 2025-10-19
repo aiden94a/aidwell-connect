@@ -1,7 +1,7 @@
 // Contract addresses configuration
 export const CONTRACT_ADDRESSES = {
   // Main contract address
-  AIDWELL_CONNECT: import.meta.env.VITE_CONTRACT_ADDRESS || '0x7f7Fd61344Cff1cb186b54AC308414eBE2fada25',
+  AIDWELL_CONNECT: import.meta.env.VITE_CONTRACT_ADDRESS || '0xA3C35568CdD5D9244F32B600F1C3181579Fd2e07',
   
   // Admin address
   ADMIN_ADDRESS: import.meta.env.VITE_ADMIN_ADDRESS || '0x3C7FAe276c590a8DF81eD320851C53DB4bC39916',

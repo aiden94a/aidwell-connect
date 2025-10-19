@@ -104,10 +104,12 @@ contract AidWellConnect is SepoliaConfig {
         
         uint256 voucherId = voucherCounter++;
         
-        // Simplified: Store encrypted data directly without complex FHE validation
+        // 参考SecretBox实现：使用FHE.fromExternal验证
+        euint32 internalAmount = FHE.fromExternal(amount, inputProof);
+        
         vouchers[voucherId] = AidVoucher({
             voucherId: FHE.asEuint32(uint32(voucherId)),
-            amount: FHE.asEuint32(100), // Simplified: Use fixed amount for now
+            amount: internalAmount,
             expiryTime: FHE.asEuint32(uint32(expiryTime)),
             recipient: recipient,
             ngo: msg.sender,
@@ -117,9 +119,13 @@ contract AidWellConnect is SepoliaConfig {
             createdAt: block.timestamp
         });
         
-        // Simplified ACL permissions
+        // 设置ACL权限（参考SecretBox）
         FHE.allowThis(vouchers[voucherId].amount);
         FHE.allowThis(vouchers[voucherId].expiryTime);
+        FHE.allow(vouchers[voucherId].amount, recipient);
+        FHE.allow(vouchers[voucherId].expiryTime, recipient);
+        FHE.allow(vouchers[voucherId].amount, msg.sender);
+        FHE.allow(vouchers[voucherId].expiryTime, msg.sender);
         
         recipientVouchers[recipient].push(voucherId);
         
