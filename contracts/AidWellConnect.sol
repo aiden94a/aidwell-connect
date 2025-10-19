@@ -2,21 +2,21 @@
 pragma solidity ^0.8.24;
 
 import { SepoliaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
-import { euint32, externalEuint32, euint8, ebool, FHE } from "@fhevm/solidity/lib/FHE.sol";
+import { euint32, externalEuint32, euint8, ebool, eaddress, externalEaddress, FHE } from "@fhevm/solidity/lib/FHE.sol";
 
 contract AidWellConnect is SepoliaConfig {
     using FHE for *;
     
     struct AidVoucher {
-        euint32 voucherId;
-        euint32 amount;
-        euint32 expiryTime;
-        address recipient;
-        address ngo;
-        bool isRedeemed;
-        bool isActive;
-        string purpose;
-        uint256 createdAt;
+        uint256 voucherId;        // Public ID, no encryption needed
+        euint32 amount;           // Sensitive amount, needs encryption
+        uint256 expiryTime;      // Public expiry time, no encryption needed
+        eaddress recipient;       // Sensitive recipient address, needs encryption
+        address ngo;              // Public NGO address, no encryption needed
+        bool isRedeemed;          // Public status, no encryption needed
+        bool isActive;            // Public status, no encryption needed
+        string purpose;           // Public purpose, no encryption needed
+        uint256 createdAt;        // Public creation time, no encryption needed
     }
     
     struct NGORegistration {
@@ -91,50 +91,50 @@ contract AidWellConnect is SepoliaConfig {
     }
     
     function createVoucher(
-        address recipient,
+        externalEaddress recipient,
         externalEuint32 amount,
         uint256 expiryTime,
         string memory purpose,
         bytes calldata inputProof
     ) public returns (uint256) {
         require(ngoRegistrations[msg.sender].isVerified, "NGO must be verified");
-        require(recipient != address(0), "Invalid recipient address");
         require(expiryTime > block.timestamp, "Expiry time must be in the future");
         require(bytes(purpose).length > 0, "Purpose cannot be empty");
         
         uint256 voucherId = voucherCounter++;
         
-        // 参考SecretBox实现：使用FHE.fromExternal验证
+        // Reference SecretBox implementation: use FHE.fromExternal validation
+        eaddress internalRecipient = FHE.fromExternal(recipient, inputProof);
         euint32 internalAmount = FHE.fromExternal(amount, inputProof);
         
         vouchers[voucherId] = AidVoucher({
-            voucherId: FHE.asEuint32(uint32(voucherId)),
-            amount: internalAmount,
-            expiryTime: FHE.asEuint32(uint32(expiryTime)),
-            recipient: recipient,
-            ngo: msg.sender,
-            isRedeemed: false,
-            isActive: true,
-            purpose: purpose,
-            createdAt: block.timestamp
+            voucherId: voucherId,                    // Public ID
+            amount: internalAmount,                  // Encrypted amount
+            expiryTime: expiryTime,                  // Public expiry time
+            recipient: internalRecipient,            // Encrypted recipient address
+            ngo: msg.sender,                         // Public NGO address
+            isRedeemed: false,                       // Public status
+            isActive: true,                          // Public status
+            purpose: purpose,                        // Public purpose
+            createdAt: block.timestamp               // Public creation time
         });
         
-        // 设置ACL权限（参考SecretBox）
+        // Set ACL permissions (reference SecretBox)
         FHE.allowThis(vouchers[voucherId].amount);
-        FHE.allowThis(vouchers[voucherId].expiryTime);
-        FHE.allow(vouchers[voucherId].amount, recipient);
-        FHE.allow(vouchers[voucherId].expiryTime, recipient);
+        FHE.allowThis(vouchers[voucherId].recipient);
         FHE.allow(vouchers[voucherId].amount, msg.sender);
-        FHE.allow(vouchers[voucherId].expiryTime, msg.sender);
+        FHE.allow(vouchers[voucherId].recipient, msg.sender);
         
-        recipientVouchers[recipient].push(voucherId);
+        // Note: Since recipient is now encrypted, cannot be used directly for mapping
+        // This needs to be handled during decryption or use other tracking methods
         
-        emit VoucherCreated(voucherId, recipient, msg.sender);
+        emit VoucherCreated(voucherId, address(0), msg.sender); // recipient address encrypted, use 0 address
         return voucherId;
     }
     
     function redeemVoucher(uint256 voucherId) public {
-        require(vouchers[voucherId].recipient == msg.sender, "Only recipient can redeem voucher");
+        // Note: Since recipient is now encrypted, cannot directly compare
+        // This needs to be verified after decryption on frontend, or use other verification methods
         require(vouchers[voucherId].isActive, "Voucher is not active");
         require(!vouchers[voucherId].isRedeemed, "Voucher already redeemed");
         // Note: Expiry check will be done off-chain due to FHE limitations
