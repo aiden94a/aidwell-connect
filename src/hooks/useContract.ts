@@ -1,10 +1,10 @@
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { AidWellConnect } from '../contracts/AidWellConnect';
+import { AidWellConnect, getContractAddress } from '../config/contracts';
 import { useZamaInstance } from './useZamaInstance';
 import { useEthersSigner } from './useEthersSigner';
 
-// Contract address - deployed to Sepolia with aiden94a account
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x405cA05ddb063ea9040BA956157F234c029B263A';
+// Get contract address from centralized config
+const CONTRACT_ADDRESS = getContractAddress();
 
 export const useAidWellContract = () => {
   const { address } = useAccount();
@@ -195,12 +195,27 @@ export const useAidWellContract = () => {
     }
   };
 
+  const verifyNGO = async (ngoAddress: string, isVerified: boolean) => {
+    try {
+      await writeContractAsync({
+        address: CONTRACT_ADDRESS as `0x${string}`,
+        abi: AidWellConnect.abi,
+        functionName: 'verifyNGO',
+        args: [ngoAddress, isVerified],
+      });
+    } catch (err) {
+      console.error('Error verifying NGO:', err);
+      throw err;
+    }
+  };
+
   return {
     registerNGO,
     createVoucher,
     redeemVoucher,
     createDistribution,
     decryptVoucherData,
+    verifyNGO,
     hash,
     isPending,
     error,
@@ -208,14 +223,24 @@ export const useAidWellContract = () => {
 };
 
 export const useNGOInfo = (ngoAddress: string) => {
-  const { data, isLoading, error } = useReadContract({
+  console.log('useNGOInfo Debug:');
+  console.log('- ngoAddress:', ngoAddress);
+  console.log('- CONTRACT_ADDRESS:', CONTRACT_ADDRESS);
+  console.log('- Contract ABI available:', !!AidWellConnect.abi);
+  
+  const { data, isLoading, error, refetch } = useReadContract({
     address: CONTRACT_ADDRESS as `0x${string}`,
     abi: AidWellConnect.abi,
     functionName: 'getNGOInfo',
     args: [ngoAddress],
   });
 
-  return { data, isLoading, error };
+  console.log('useNGOInfo Result:');
+  console.log('- data:', data);
+  console.log('- isLoading:', isLoading);
+  console.log('- error:', error);
+
+  return { data, isLoading, error, refetch };
 };
 
 export const useVoucherInfo = (voucherId: number) => {

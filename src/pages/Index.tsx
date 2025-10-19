@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Shield, Users, ArrowRight } from "lucide-react";
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import NGODashboard from "@/components/NGODashboard";
 import RecipientDashboard from "@/components/RecipientDashboard";
+import AdminDashboard from "@/components/AdminDashboard";
 import Logo from "@/components/Logo";
 import heroImage from "@/assets/hero-aid-distribution.jpg";
 
@@ -18,29 +20,39 @@ const Index = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <Logo size="md" showText={true} />
-            <nav className="hidden md:flex items-center gap-6 text-sm">
-              <Button
-                variant="ghost"
-                onClick={() => setActiveTab("overview")}
-                className="hover:bg-primary-soft"
-              >
-                Overview
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setActiveTab("ngo")}
-                className="hover:bg-hope-soft"
-              >
-                For NGOs
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setActiveTab("recipients")}
-                className="hover:bg-accent-soft"
-              >
-                For Recipients
-              </Button>
-            </nav>
+            <div className="flex items-center gap-4">
+              <nav className="hidden md:flex items-center gap-6 text-sm">
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("overview")}
+                  className="hover:bg-primary-soft"
+                >
+                  Overview
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("ngo")}
+                  className="hover:bg-hope-soft"
+                >
+                  For NGOs
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("recipients")}
+                  className="hover:bg-accent-soft"
+                >
+                  For Recipients
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setActiveTab("admin")}
+                  className="hover:bg-blue-soft"
+                >
+                  Admin
+                </Button>
+              </nav>
+              <ConnectButton />
+            </div>
           </div>
         </div>
       </header>
@@ -48,10 +60,11 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid grid-cols-3 w-full max-w-md mx-auto">
+          <TabsList className="grid grid-cols-4 w-full max-w-lg mx-auto">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="ngo">NGOs</TabsTrigger>
             <TabsTrigger value="recipients">Recipients</TabsTrigger>
+            <TabsTrigger value="admin">Admin</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -152,6 +165,17 @@ const Index = () => {
               </p>
             </div>
             <RecipientDashboard />
+          </TabsContent>
+
+          {/* Admin Dashboard */}
+          <TabsContent value="admin" className="max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold mb-4">Admin Dashboard</h2>
+              <p className="text-muted-foreground">
+                Manage NGO registrations and verifications for the aid distribution platform.
+              </p>
+            </div>
+            <AdminDashboard />
           </TabsContent>
         </Tabs>
       </main>

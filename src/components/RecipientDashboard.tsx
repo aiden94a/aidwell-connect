@@ -5,7 +5,6 @@ import { Gift, Clock, CheckCircle, Shield, Eye, EyeOff } from "lucide-react";
 import { useAccount } from 'wagmi';
 import { useRecipientVouchers, useAidWellContract } from "@/hooks/useContract";
 import { useZamaInstance } from "@/hooks/useZamaInstance";
-import WalletConnect from "./WalletConnect";
 import { useState, useEffect } from "react";
 
 const RecipientDashboard = () => {
@@ -75,9 +74,6 @@ const RecipientDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Wallet Connection */}
-      <WalletConnect />
-
       {/* Received Vouchers */}
       <Card className="p-6 shadow-card">
         <div className="flex items-center gap-3 mb-6">

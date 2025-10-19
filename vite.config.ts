@@ -15,7 +15,8 @@ export default defineConfig({
     },
   },
   define: { 
-    global: 'globalThis' 
+    global: 'globalThis',
+    'process.env': {}
   },
   optimizeDeps: { 
     include: ['@zama-fhe/relayer-sdk/bundle'] 

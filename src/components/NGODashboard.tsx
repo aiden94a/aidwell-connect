@@ -13,11 +13,56 @@ const NGODashboard = () => {
   const [recipientAddress, setRecipientAddress] = useState("");
   const [voucherAmount, setVoucherAmount] = useState("");
   const [purpose, setPurpose] = useState("");
+  const [ngoName, setNgoName] = useState("");
+  const [ngoDescription, setNgoDescription] = useState("");
+  const [ngoWebsite, setNgoWebsite] = useState("");
+  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
   const { address } = useAccount();
   const { toast } = useToast();
   const { registerNGO, createVoucher, isPending } = useAidWellContract();
-  const { data: ngoInfo, isLoading: ngoLoading } = useNGOInfo(address || '');
+  const { data: ngoInfo, isLoading: ngoLoading, refetch: refetchNGOInfo } = useNGOInfo(address || '');
   const { data: distributions } = useNGODistributions(address || '');
+
+  const handleRegisterNGO = async () => {
+    if (!address) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to register NGO.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!ngoName || !ngoDescription || !ngoWebsite) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all NGO registration fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await registerNGO(ngoName, ngoDescription, ngoWebsite);
+      toast({
+        title: "NGO Registration Submitted",
+        description: "Your NGO registration has been submitted for verification.",
+      });
+      setShowRegistrationForm(false);
+      setNgoName("");
+      setNgoDescription("");
+      setNgoWebsite("");
+      // Refresh NGO info to show updated status
+      await refetchNGOInfo();
+    } catch (error) {
+      console.error('Error registering NGO:', error);
+      toast({
+        title: "Registration Failed",
+        description: "Failed to register NGO. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const distributeVoucher = async () => {
     if (!recipientAddress || !voucherAmount || !purpose) {
@@ -92,19 +137,67 @@ const NGODashboard = () => {
               Your NGO needs to be registered and verified before you can distribute aid vouchers.
             </p>
             <Button 
-              onClick={() => {
-                // This would open a registration form
-                toast({
-                  title: "Registration",
-                  description: "NGO registration form would open here.",
-                });
-              }}
+              onClick={() => setShowRegistrationForm(true)}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               Register NGO
             </Button>
           </div>
         </Card>
+
+        {showRegistrationForm && (
+          <Card className="p-6 shadow-card">
+            <div className="space-y-4">
+              <h3 className="font-semibold text-xl">NGO Registration Form</h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="ngoName">NGO Name</Label>
+                <Input
+                  id="ngoName"
+                  placeholder="Enter your NGO name"
+                  value={ngoName}
+                  onChange={(e) => setNgoName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ngoDescription">Description</Label>
+                <Input
+                  id="ngoDescription"
+                  placeholder="Describe your NGO's mission and activities"
+                  value={ngoDescription}
+                  onChange={(e) => setNgoDescription(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ngoWebsite">Website</Label>
+                <Input
+                  id="ngoWebsite"
+                  placeholder="https://your-ngo-website.com"
+                  value={ngoWebsite}
+                  onChange={(e) => setNgoWebsite(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleRegisterNGO}
+                  disabled={isPending}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  {isPending ? "Registering..." : "Submit Registration"}
+                </Button>
+                <Button 
+                  onClick={() => setShowRegistrationForm(false)}
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
     );
   }
