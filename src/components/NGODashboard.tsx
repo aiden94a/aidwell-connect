@@ -20,7 +20,7 @@ const NGODashboard = () => {
   const { address } = useAccount();
   const { toast } = useToast();
   const { registerNGO, createVoucher, isPending } = useAidWellContract();
-  const { data: ngoInfo, isLoading: ngoLoading, refetch: refetchNGOInfo } = useNGOInfo(address || '');
+  const { data: ngoInfo, isLoading: ngoLoading, error, refetch: refetchNGOInfo } = useNGOInfo(address || '');
   const { data: distributions } = useNGODistributions(address || '');
 
   // Convert array data to object format (same as AdminDashboard)
