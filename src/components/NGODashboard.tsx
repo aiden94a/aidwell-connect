@@ -71,8 +71,10 @@ const NGODashboard = () => {
       setNgoName("");
       setNgoDescription("");
       setNgoWebsite("");
-      // Refresh NGO info to show updated status
-      await refetchNGOInfo();
+      // Wait a moment for transaction to be mined, then refresh NGO info
+      setTimeout(async () => {
+        await refetchNGOInfo();
+      }, 2000);
     } catch (error) {
       console.error('Error registering NGO:', error);
       toast({
@@ -246,7 +248,7 @@ const NGODashboard = () => {
             </div>
             <h3 className="font-semibold text-xl">NGO Registration Pending</h3>
             <p className="text-muted-foreground">
-              Your NGO "{ngoData.name}" is registered and waiting for admin verification.
+              Your NGO "{ngoData.name || 'Unknown'}" is registered and waiting for admin verification.
             </p>
             <div className="flex items-center justify-center gap-2">
               <Badge variant="secondary" className="bg-orange-100 text-orange-800">
