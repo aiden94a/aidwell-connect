@@ -20,7 +20,7 @@ export const useAidWellContract = () => {
         abi: AidWellConnect.abi,
         functionName: 'registerNGO',
         args: [name, description, website],
-      });
+      } as any);
     } catch (err) {
       console.error('Error registering NGO:', err);
       throw err;
@@ -56,15 +56,15 @@ export const useAidWellContract = () => {
       };
 
       const handles = encryptedInput.handles.map(convertHex);
-      const proof = `0x${Array.from(encryptedInput.inputProof)
+      const proof = `0x${Array.from(encryptedInput.inputProof as Uint8Array)
         .map(b => b.toString(16).padStart(2, '0')).join('')}`;
 
       await writeContractAsync({
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: AidWellConnect.abi,
         functionName: 'createVoucher',
-        args: [recipient, handles[0], expiryTime, purpose, proof],
-      });
+        args: [recipient, handles[0], BigInt(expiryTime), purpose, proof],
+      } as any);
     } catch (err) {
       console.error('Error creating voucher:', err);
       throw err;
@@ -77,8 +77,8 @@ export const useAidWellContract = () => {
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: AidWellConnect.abi,
         functionName: 'redeemVoucher',
-        args: [voucherId],
-      });
+        args: [BigInt(voucherId)],
+      } as any);
     } catch (err) {
       console.error('Error redeeming voucher:', err);
       throw err;
@@ -113,15 +113,15 @@ export const useAidWellContract = () => {
       };
 
       const handles = encryptedInput.handles.map(convertHex);
-      const proof = `0x${Array.from(encryptedInput.inputProof)
+      const proof = `0x${Array.from(encryptedInput.inputProof as Uint8Array)
         .map(b => b.toString(16).padStart(2, '0')).join('')}`;
 
       await writeContractAsync({
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: AidWellConnect.abi,
         functionName: 'createDistribution',
-        args: [recipients, handles, purpose, proof],
-      });
+        args: [recipients as `0x${string}`[], handles, purpose, proof],
+      } as any);
     } catch (err) {
       console.error('Error creating distribution:', err);
       throw err;
@@ -197,14 +197,26 @@ export const useAidWellContract = () => {
 
   const verifyNGO = async (ngoAddress: string, isVerified: boolean) => {
     try {
-      await writeContractAsync({
+      console.log('verifyNGO called with:', { ngoAddress, isVerified });
+      console.log('Contract address:', CONTRACT_ADDRESS);
+      console.log('Current user address:', address);
+      
+      // Simple contract call without FHE dependencies
+      const result = await writeContractAsync({
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: AidWellConnect.abi,
         functionName: 'verifyNGO',
-        args: [ngoAddress, isVerified],
-      });
+        args: [ngoAddress as `0x${string}`, isVerified],
+        gas: 100000n, // Set explicit gas limit
+      } as any);
+      
+      console.log('verifyNGO transaction result:', result);
+      return result;
     } catch (err) {
       console.error('Error verifying NGO:', err);
+      console.error('Error type:', typeof err);
+      console.error('Error message:', err?.message);
+      console.error('Error code:', err?.code);
       throw err;
     }
   };
@@ -225,20 +237,34 @@ export const useAidWellContract = () => {
 export const useNGOInfo = (ngoAddress: string) => {
   console.log('useNGOInfo Debug:');
   console.log('- ngoAddress:', ngoAddress);
+  console.log('- ngoAddress type:', typeof ngoAddress);
+  console.log('- ngoAddress length:', ngoAddress?.length);
   console.log('- CONTRACT_ADDRESS:', CONTRACT_ADDRESS);
   console.log('- Contract ABI available:', !!AidWellConnect.abi);
+  
+  // Only call contract if ngoAddress is valid and not empty
+  const isValidAddress = ngoAddress && 
+                         ngoAddress.trim() !== '' && 
+                         ngoAddress.length === 42 && 
+                         ngoAddress.startsWith('0x');
+  
+  console.log('- isValidAddress:', isValidAddress);
   
   const { data, isLoading, error, refetch } = useReadContract({
     address: CONTRACT_ADDRESS as `0x${string}`,
     abi: AidWellConnect.abi,
     functionName: 'getNGOInfo',
-    args: [ngoAddress],
+    args: [ngoAddress as `0x${string}`],
+    query: {
+      enabled: isValidAddress
+    }
   });
 
   console.log('useNGOInfo Result:');
   console.log('- data:', data);
   console.log('- isLoading:', isLoading);
   console.log('- error:', error);
+  console.log('- isValidAddress:', isValidAddress);
 
   return { data, isLoading, error, refetch };
 };
@@ -248,7 +274,7 @@ export const useVoucherInfo = (voucherId: number) => {
     address: CONTRACT_ADDRESS as `0x${string}`,
     abi: AidWellConnect.abi,
     functionName: 'getVoucherInfo',
-    args: [voucherId],
+    args: [BigInt(voucherId)],
   });
 
   return { data, isLoading, error };
@@ -259,7 +285,7 @@ export const useRecipientVouchers = (recipientAddress: string) => {
     address: CONTRACT_ADDRESS as `0x${string}`,
     abi: AidWellConnect.abi,
     functionName: 'getRecipientVouchers',
-    args: [recipientAddress],
+    args: [recipientAddress as `0x${string}`],
   });
 
   return { data, isLoading, error };
@@ -270,7 +296,7 @@ export const useNGODistributions = (ngoAddress: string) => {
     address: CONTRACT_ADDRESS as `0x${string}`,
     abi: AidWellConnect.abi,
     functionName: 'getNGODistributions',
-    args: [ngoAddress],
+    args: [ngoAddress as `0x${string}`],
   });
 
   return { data, isLoading, error };

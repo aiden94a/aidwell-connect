@@ -8,7 +8,7 @@ import { Shield, CheckCircle, XCircle, Users, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAccount } from 'wagmi';
 import { useAidWellContract, useNGOInfo } from "@/hooks/useContract";
-import { getContractAddress } from "@/config/contracts";
+import { getContractAddress, getAdminAddress } from "@/config/contracts";
 
 const AdminDashboard = () => {
   const [ngoAddress, setNgoAddress] = useState("");
@@ -57,19 +57,99 @@ const AdminDashboard = () => {
       return;
     }
 
+    // Check if current user is admin
+    const adminAddress = getAdminAddress();
+    console.log('Address comparison:');
+    console.log('- Current user address:', address);
+    console.log('- Admin address from config:', adminAddress);
+    console.log('- Addresses match (case insensitive):', address.toLowerCase() === adminAddress.toLowerCase());
+    console.log('- Addresses match (exact):', address === adminAddress);
+    
+    if (address.toLowerCase() !== adminAddress.toLowerCase()) {
+      toast({
+        title: "Unauthorized",
+        description: `Only the admin can verify NGOs. Current: ${address}, Expected: ${adminAddress}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsVerifying(true);
+      console.log('Verifying NGO:', { ngoAddress, isVerified, adminAddress: address });
+      console.log('Contract address:', getContractAddress());
+      console.log('Admin address from config:', getAdminAddress());
+      
+      // Validate parameters before calling
+      if (!ngoAddress || ngoAddress.length !== 42 || !ngoAddress.startsWith('0x')) {
+        throw new Error('Invalid NGO address format');
+      }
+      
+      if (typeof isVerified !== 'boolean') {
+        throw new Error('Invalid verification status');
+      }
+      
+      // Show confirmation dialog before transaction
+      toast({
+        title: "Confirm Transaction",
+        description: `Please confirm the transaction in your wallet to ${isVerified ? 'verify' : 'reject'} the NGO.`,
+      });
+      
+      console.log('Calling verifyNGO with parameters:', { ngoAddress, isVerified });
       await verifyNGO(ngoAddress, isVerified);
+      
       toast({
         title: isVerified ? "NGO Verified" : "NGO Rejected",
         description: `NGO has been ${isVerified ? 'verified' : 'rejected'} successfully.`,
       });
       setNgoAddress("");
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error verifying NGO:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        data: error?.data,
+        stack: error?.stack
+      });
+      
+      let errorMessage = "Failed to verify NGO. Please try again.";
+      let errorTitle = "Verification Failed";
+      
+      if (error?.message?.includes('User rejected') || error?.message?.includes('user rejected')) {
+        errorMessage = "Transaction was rejected. Please try again and confirm the transaction in your wallet.";
+        errorTitle = "Transaction Rejected";
+      } else if (error?.message?.includes('insufficient funds')) {
+        errorMessage = "Insufficient funds for transaction. Please add more ETH to your wallet.";
+        errorTitle = "Insufficient Funds";
+      } else if (error?.message?.includes('gas')) {
+        errorMessage = "Gas estimation failed. Please try again.";
+        errorTitle = "Gas Estimation Failed";
+      } else if (error?.message?.includes('Invalid NGO address')) {
+        errorMessage = "Invalid NGO address format.";
+        errorTitle = "Invalid Address";
+      } else if (error?.message?.includes('Invalid verification status')) {
+        errorMessage = "Invalid verification status.";
+        errorTitle = "Invalid Status";
+      } else if (error?.message?.includes('Only verifier can verify NGOs')) {
+        errorMessage = "You are not authorized to verify NGOs. Only the admin can perform this action.";
+        errorTitle = "Unauthorized";
+      } else if (error?.message?.includes('NGO not registered')) {
+        errorMessage = "This NGO address is not registered in the system.";
+        errorTitle = "NGO Not Found";
+      } else if (error?.message?.includes('Only verifier can verify NGOs')) {
+        errorMessage = "You are not authorized to verify NGOs. Only the admin can perform this action.";
+        errorTitle = "Unauthorized";
+      } else if (error?.message?.includes('permission') || error?.message?.includes('Permission')) {
+        errorMessage = "Smart contract permission denied. Please check your wallet permissions and try again.";
+        errorTitle = "Permission Denied";
+      } else if (error?.message?.includes('revert') || error?.message?.includes('Revert')) {
+        errorMessage = "Transaction was reverted by the smart contract. Please check the contract state and try again.";
+        errorTitle = "Transaction Reverted";
+      }
+      
       toast({
-        title: "Verification Failed",
-        description: "Failed to verify NGO. Please try again.",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -78,10 +158,20 @@ const AdminDashboard = () => {
   };
 
   const handleLookupNGO = () => {
-    if (!ngoAddress) {
+    if (!ngoAddress || ngoAddress.trim() === '') {
       toast({
         title: "Missing Information",
         description: "Please enter an NGO address to lookup.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate address format
+    if (ngoAddress.length !== 42 || !ngoAddress.startsWith('0x')) {
+      toast({
+        title: "Invalid Address",
+        description: "Please enter a valid Ethereum address (42 characters starting with 0x).",
         variant: "destructive",
       });
       return;
@@ -96,10 +186,19 @@ const AdminDashboard = () => {
       console.log('Testing contract connection...');
       console.log('Contract address:', getContractAddress());
       console.log('NGO address:', ngoAddress);
+      console.log('Current user address:', address);
+      console.log('Admin address from config:', getAdminAddress());
       
       // Test with a known address (admin address)
       const testAddress = getContractAddress();
       console.log('Testing with admin address:', testAddress);
+      
+      // Test simple contract read
+      if (ngoAddress && ngoAddress.length === 42) {
+        console.log('Testing NGO info lookup...');
+        // This should work without FHE dependencies
+        console.log('NGO lookup test completed');
+      }
     } catch (error) {
       console.error('Contract test error:', error);
     }
@@ -115,6 +214,13 @@ const AdminDashboard = () => {
           <div>
             <h2 className="font-semibold text-xl">Admin Dashboard</h2>
             <p className="text-muted-foreground">Manage NGO registrations and verifications</p>
+            {address && (
+              <div className="mt-2">
+                <Badge variant={address.toLowerCase() === getAdminAddress().toLowerCase() ? "default" : "secondary"}>
+                  {address.toLowerCase() === getAdminAddress().toLowerCase() ? "Admin" : "Not Admin"}
+                </Badge>
+              </div>
+            )}
           </div>
         </div>
 
@@ -179,24 +285,36 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 
-                <div className="flex gap-2 pt-3">
-                  <Button 
-                    onClick={() => handleVerifyNGO(true)}
-                    disabled={isPending || isVerifying || ngoData.isVerified}
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    {isPending || isVerifying ? "Verifying..." : "Verify NGO"}
-                  </Button>
-                  <Button 
-                    onClick={() => handleVerifyNGO(false)}
-                    disabled={isPending || isVerifying}
-                    variant="destructive"
-                  >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    {isPending || isVerifying ? "Rejecting..." : "Reject NGO"}
-                  </Button>
-                </div>
+                       <div className="flex gap-2 pt-3">
+                         <Button
+                           onClick={() => handleVerifyNGO(true)}
+                           disabled={isPending || isVerifying || ngoData.isVerified}
+                           className="bg-green-600 hover:bg-green-700 text-white"
+                         >
+                           <CheckCircle className="h-4 w-4 mr-2" />
+                           {isPending || isVerifying ? "Verifying..." : "Verify NGO"}
+                         </Button>
+                         <Button
+                           onClick={() => handleVerifyNGO(false)}
+                           disabled={isPending || isVerifying}
+                           variant="destructive"
+                         >
+                           <XCircle className="h-4 w-4 mr-2" />
+                           {isPending || isVerifying ? "Rejecting..." : "Reject NGO"}
+                         </Button>
+                       </div>
+                       
+                       {isVerifying && (
+                         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                           <p className="text-sm text-blue-800">
+                             <strong>Please confirm the transaction in your wallet.</strong>
+                           </p>
+                           <p className="text-xs text-blue-600 mt-1">
+                             A wallet popup should appear asking you to sign the transaction. 
+                             Click "Confirm" or "Sign" to proceed.
+                           </p>
+                         </div>
+                       )}
               </div>
             </Card>
           )}

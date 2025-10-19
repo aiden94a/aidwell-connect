@@ -6,8 +6,8 @@ async function main() {
   // Get the contract factory
   const AidWellConnect = await ethers.getContractFactory("AidWellConnect");
 
-  // Set the admin/verifier address
-  const adminAddress = "0x3c7fae276c590a8df81ed320851c53db4bc39916";
+  // Set the admin/verifier address (use exact case from wallet)
+  const adminAddress = "0x3C7FAe276c590a8DF81eD320851C53DB4bC39916";
   
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);

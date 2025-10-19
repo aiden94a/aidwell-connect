@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Heart, Shield, Users, ArrowRight } from "lucide-react";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
+import { getAdminAddress } from "@/config/contracts";
 import NGODashboard from "@/components/NGODashboard";
 import RecipientDashboard from "@/components/RecipientDashboard";
 import AdminDashboard from "@/components/AdminDashboard";
@@ -12,6 +14,10 @@ import heroImage from "@/assets/hero-aid-distribution.jpg";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const { address } = useAccount();
+  
+  // Check if current user is admin
+  const isAdmin = address && address.toLowerCase() === getAdminAddress().toLowerCase();
 
   return (
     <div className="min-h-screen bg-gradient-care">
@@ -43,13 +49,15 @@ const Index = () => {
                 >
                   For Recipients
                 </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setActiveTab("admin")}
-                  className="hover:bg-blue-soft"
-                >
-                  Admin
-                </Button>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => setActiveTab("admin")}
+                    className="hover:bg-blue-soft"
+                  >
+                    Admin
+                  </Button>
+                )}
               </nav>
               <ConnectButton />
             </div>
@@ -60,12 +68,6 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid grid-cols-4 w-full max-w-lg mx-auto">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="ngo">NGOs</TabsTrigger>
-            <TabsTrigger value="recipients">Recipients</TabsTrigger>
-            <TabsTrigger value="admin">Admin</TabsTrigger>
-          </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-12">
@@ -168,15 +170,17 @@ const Index = () => {
           </TabsContent>
 
           {/* Admin Dashboard */}
-          <TabsContent value="admin" className="max-w-4xl mx-auto">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold mb-4">Admin Dashboard</h2>
-              <p className="text-muted-foreground">
-                Manage NGO registrations and verifications for the aid distribution platform.
-              </p>
-            </div>
-            <AdminDashboard />
-          </TabsContent>
+          {isAdmin && (
+            <TabsContent value="admin" className="max-w-4xl mx-auto">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold mb-4">Admin Dashboard</h2>
+                <p className="text-muted-foreground">
+                  Manage NGO registrations and verifications for the aid distribution platform.
+                </p>
+              </div>
+              <AdminDashboard />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 
