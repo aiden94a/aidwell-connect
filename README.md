@@ -99,6 +99,70 @@ Our platform uses the most advanced cryptographic technology available:
 
 ---
 
+## 📋 **Smart Contract Information**
+
+### **Contract Address**
+- **Main Contract**: `0x81DDce3aeb7a5E5118bfa230186B04CD918175c8`
+- **Network**: Ethereum Sepolia Testnet
+- **Admin Address**: `0x3C7FAe276c590a8DF81eD320851C53DB4bC39916`
+
+### **Key Contract Functions**
+- `registerNGO()` - Register new NGO organizations
+- `verifyNGO()` - Admin verification of NGOs
+- `createVoucher()` - Create encrypted aid vouchers
+- `redeemVoucher()` - Redeem aid vouchers
+- `getVoucherInfo()` - Get public voucher information
+- `getVoucherEncryptedData()` - Get encrypted voucher data
+- `getAllVouchers()` - Get all voucher IDs
+
+---
+
+## 🔐 **Core Encryption Logic**
+
+### **FHE Implementation**
+Our smart contract uses Zama's FHE technology to encrypt sensitive data:
+
+```solidity
+// Encrypted data types
+euint32 internalAmount;     // Encrypted aid amount
+eaddress internalRecipient; // Encrypted recipient address
+
+// ACL permissions for decryption
+FHE.allow(vouchers[voucherId].amount, address(0));     // Allow anyone to decrypt amount
+FHE.allow(vouchers[voucherId].recipient, address(0));  // Allow anyone to decrypt recipient
+```
+
+### **Encryption Process**
+1. **Data Encryption**: Sensitive data (amount, recipient) is encrypted using FHE
+2. **ACL Setup**: Access control lists define who can decrypt data
+3. **Proof Generation**: Cryptographic proofs ensure data integrity
+4. **Client-Side Decryption**: Users decrypt data locally using their private keys
+
+### **Privacy Guarantees**
+- ✅ **Amount Privacy**: Aid amounts are never visible on-chain
+- ✅ **Recipient Privacy**: Recipient addresses are encrypted
+- ✅ **Zero-Knowledge Verification**: Aid delivery can be verified without revealing amounts
+- ✅ **Mathematical Security**: Based on lattice-based cryptography (LWE problem)
+
+---
+
+## 🎥 **Demo Video**
+
+Watch our platform in action:
+
+[![AidWell Connect Demo](https://img.shields.io/badge/📹_Watch_Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](./aidwell_compressed.mp4)
+
+**Video Features:**
+- Complete NGO registration and verification process
+- Encrypted voucher creation and distribution
+- Privacy-preserving recipient dashboard
+- Secure voucher redemption with FHE decryption
+- Real-time blockchain interaction
+
+*Click the badge above to watch the full demonstration*
+
+---
+
 ## 🚀 **Quick Start**
 
 ### **Prerequisites**
