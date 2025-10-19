@@ -23,6 +23,24 @@ const NGODashboard = () => {
   const { data: ngoInfo, isLoading: ngoLoading, refetch: refetchNGOInfo } = useNGOInfo(address || '');
   const { data: distributions } = useNGODistributions(address || '');
 
+  // Convert array data to object format (same as AdminDashboard)
+  const ngoData = ngoInfo ? {
+    name: ngoInfo[0],
+    description: ngoInfo[1],
+    website: ngoInfo[2],
+    isVerified: ngoInfo[3],
+    reputation: ngoInfo[4],
+    registrationTime: ngoInfo[5]
+  } : null;
+
+  // Debug logging
+  console.log('NGODashboard Debug Info:');
+  console.log('- ngoInfo (raw):', ngoInfo);
+  console.log('- ngoData (processed):', ngoData);
+  console.log('- isLoading:', ngoLoading);
+  console.log('- error:', error);
+  console.log('- current user address:', address);
+
   const handleRegisterNGO = async () => {
     if (!address) {
       toast({
@@ -124,7 +142,8 @@ const NGODashboard = () => {
     return <div>Loading NGO information...</div>;
   }
 
-  if (!ngoInfo || !ngoInfo.isVerified) {
+  // If no NGO info exists, show registration form
+  if (!ngoData) {
     return (
       <div className="space-y-6">
         <Card className="p-6 shadow-card">
@@ -202,6 +221,33 @@ const NGODashboard = () => {
     );
   }
 
+  // If NGO exists but not verified, show pending status
+  if (ngoData && !ngoData.isVerified) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-6 shadow-card">
+          <div className="text-center space-y-4">
+            <div className="p-3 bg-orange-soft rounded-lg w-fit mx-auto">
+              <Shield className="h-6 w-6 text-orange-600" />
+            </div>
+            <h3 className="font-semibold text-xl">NGO Registration Pending</h3>
+            <p className="text-muted-foreground">
+              Your NGO "{ngoData.name}" is registered and waiting for admin verification.
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                Pending Verification
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Once verified by an admin, you'll be able to distribute aid vouchers.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* NGO Status */}
@@ -212,7 +258,7 @@ const NGODashboard = () => {
           </div>
           <div>
             <h3 className="font-semibold text-lg">NGO Verified</h3>
-            <p className="text-sm text-muted-foreground">{ngoInfo.name}</p>
+            <p className="text-sm text-muted-foreground">{ngoData.name}</p>
           </div>
         </div>
       </Card>
