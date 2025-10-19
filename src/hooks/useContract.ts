@@ -87,9 +87,10 @@ export const useAidWellContract = () => {
         return hex;
       };
 
-      // 直接使用handles，不进行convertHex转换（参考fhed-shield-secure）
-      const handles = encryptedInput.handles;
-      const proof = encryptedInput.inputProof;
+      // 转换handles为十六进制字符串（Uint8Array不能直接传递给合约）
+      const handles = encryptedInput.handles.map(convertHex);
+      const proof = `0x${Array.from(encryptedInput.inputProof as Uint8Array)
+        .map(b => b.toString(16).padStart(2, '0')).join('')}`;
 
       console.log('🔄 Step 4: Calling contract...');
       console.log('📊 Contract call parameters:', {
