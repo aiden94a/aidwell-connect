@@ -13,6 +13,7 @@ const NGODashboard = () => {
   const [recipientAddress, setRecipientAddress] = useState("");
   const [voucherAmount, setVoucherAmount] = useState("");
   const [purpose, setPurpose] = useState("");
+  const [expiryDays, setExpiryDays] = useState("30"); // Default 30 days
   const [ngoName, setNgoName] = useState("");
   const [ngoDescription, setNgoDescription] = useState("");
   const [ngoWebsite, setNgoWebsite] = useState("");
@@ -83,10 +84,10 @@ const NGODashboard = () => {
   };
 
   const distributeVoucher = async () => {
-    if (!recipientAddress || !voucherAmount || !purpose) {
+    if (!recipientAddress || !voucherAmount || !purpose || !expiryDays) {
       toast({
         title: "Missing Information",
-        description: "Please provide recipient address, voucher amount, and purpose.",
+        description: "Please provide recipient address, voucher amount, purpose, and expiry days.",
         variant: "destructive",
       });
       return;
@@ -111,21 +112,34 @@ const NGODashboard = () => {
         });
         return;
       }
+
+      const days = parseInt(expiryDays);
+      if (isNaN(days) || days <= 0 || days > 365) {
+        toast({
+          title: "Invalid Expiry Days",
+          description: "Please enter a valid number of days (1-365) for voucher expiry.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const expiryTime = Math.floor(Date.now() / 1000) + (days * 24 * 60 * 60);
       
       await createVoucher(
         recipientAddress,
         amount,
-        Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60), // 30 days from now
+        expiryTime,
         purpose
       );
 
       setRecipientAddress("");
       setVoucherAmount("");
       setPurpose("");
+      setExpiryDays("30"); // Reset to default
 
       toast({
         title: "Voucher Distributed",
-        description: "Encrypted voucher has been sent to the recipient.",
+        description: `Encrypted voucher has been sent to the recipient. Expires in ${days} days.`,
       });
     } catch (error) {
       console.error('Error distributing voucher:', error);
@@ -308,6 +322,22 @@ const NGODashboard = () => {
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="expiryDays">Expiry Days</Label>
+            <Input
+              id="expiryDays"
+              type="number"
+              min="1"
+              max="365"
+              placeholder="30"
+              value={expiryDays}
+              onChange={(e) => setExpiryDays(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Number of days until voucher expires (1-365 days)
+            </p>
+          </div>
+
           <Button 
             onClick={distributeVoucher}
             disabled={isPending}
@@ -329,34 +359,33 @@ const NGODashboard = () => {
         </div>
 
         <div className="space-y-3">
-          {distributions.map((dist) => (
-            <div
-              key={dist.id}
-              className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border/40"
-            >
-              <div className="flex items-center gap-3">
-                <code className="text-sm font-mono bg-primary-soft px-2 py-1 rounded text-primary">
-                  {dist.recipient}
-                </code>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-sm text-muted-foreground">{dist.timestamp}</span>
+          {distributions && distributions.length > 0 ? (
+            distributions.map((dist, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-border/40"
+              >
+                <div className="flex items-center gap-3">
+                  <code className="text-sm font-mono bg-primary-soft px-2 py-1 rounded text-primary">
+                    Distribution #{dist.toString()}
+                  </code>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-sm text-muted-foreground">Encrypted Data</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                    Encrypted
+                  </Badge>
+                </div>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-mono">{dist.amount}</span>
-                <Badge
-                  variant={dist.status === "Delivered" ? "default" : "secondary"}
-                  className={
-                    dist.status === "Delivered"
-                      ? "bg-secondary text-secondary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }
-                >
-                  {dist.status}
-                </Badge>
-              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No distributions yet</p>
+              <p className="text-sm">Create your first voucher to see it here</p>
             </div>
-          ))}
+          )}
         </div>
       </Card>
     </div>
