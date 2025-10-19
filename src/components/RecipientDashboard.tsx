@@ -1,18 +1,18 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Gift, Clock, CheckCircle, Shield, Eye, EyeOff } from "lucide-react";
+import { Gift, Clock, CheckCircle, Shield, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAccount } from 'wagmi';
-import { useRecipientVouchers, useAidWellContract } from "@/hooks/useContract";
+import { useRecipientVouchers, useAidWellContract, useVoucherInfo } from "@/hooks/useContract";
 import { useZamaInstance } from "@/hooks/useZamaInstance";
 import { useState, useEffect } from "react";
 
 const RecipientDashboard = () => {
   const { address } = useAccount();
-  const { data: voucherIds, isLoading } = useRecipientVouchers(address || '');
+  const { data: voucherIds, isLoading: loadingVoucherIds } = useRecipientVouchers(address || '');
   const { redeemVoucher, isPending, decryptVoucherData } = useAidWellContract();
   const { instance } = useZamaInstance();
-  const [decryptedVouchers, setDecryptedVouchers] = useState<any[]>([]);
+  const [decryptedVouchers, setDecryptedVouchers] = useState<Record<number, any>>({});
   const [decrypting, setDecrypting] = useState<Record<number, boolean>>({});
 
   const handleRedeemVoucher = async (voucherId: number) => {
@@ -44,33 +44,118 @@ const RecipientDashboard = () => {
     }
   };
 
-  // Mock data for demonstration - in real app, this would come from contract
-  const receivedVouchers = [
-    {
-      id: "1",
-      from: "Red Cross International",
-      amount: "***",
-      status: "Available",
-      timestamp: "2 hours ago",
-      type: "Food Aid",
-    },
-    {
-      id: "2",
-      from: "UNICEF",
-      amount: "***",
-      status: "Used",
-      timestamp: "1 day ago",
-      type: "Medical Aid",
-    },
-    {
-      id: "3",
-      from: "World Food Programme",
-      amount: "***",
-      status: "Available",
-      timestamp: "3 days ago",
-      type: "Emergency Aid",
-    },
-  ];
+  const formatTimestamp = (timestamp: bigint) => {
+    const date = new Date(Number(timestamp) * 1000);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffHours < 1) {
+      return 'Just now';
+    } else if (diffHours < 24) {
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    }
+  };
+
+  // VoucherCard component for individual voucher display
+  const VoucherCard = ({ voucherId }: { voucherId: number }) => {
+    const { data: voucherInfo, isLoading: loadingVoucher } = useVoucherInfo(voucherId);
+    
+    if (loadingVoucher) {
+      return (
+        <div className="p-4 bg-muted/20 rounded-lg border border-border/40">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm text-muted-foreground">Loading voucher...</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (!voucherInfo) {
+      return null;
+    }
+
+    const [amount, expiryTime, recipient, ngo, isRedeemed, isActive, purpose, createdAt] = voucherInfo;
+    const status = isRedeemed ? "Used" : isActive ? "Available" : "Expired";
+    const timestamp = formatTimestamp(createdAt);
+
+    return (
+      <div className="p-4 bg-muted/20 rounded-lg border border-border/40 transition-smooth hover:shadow-soft">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary-soft rounded">
+              {status === "Available" ? (
+                <Gift className="h-4 w-4 text-primary" />
+              ) : status === "Used" ? (
+                <CheckCircle className="h-4 w-4 text-secondary" />
+              ) : (
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+            <div>
+              <h4 className="font-medium">NGO #{Number(ngo).toString().slice(-4)}</h4>
+              <p className="text-sm text-muted-foreground">{purpose}</p>
+            </div>
+          </div>
+          
+          <Badge
+            variant={status === "Available" ? "default" : "secondary"}
+            className={
+              status === "Available"
+                ? "bg-accent text-accent-foreground"
+                : status === "Used"
+                ? "bg-secondary text-secondary-foreground"
+                : "bg-muted text-muted-foreground"
+            }
+          >
+            {status}
+          </Badge>
+        </div>
+
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2">
+            <Shield className="h-3 w-3 text-muted-foreground" />
+            <span className="text-muted-foreground">Amount: </span>
+            <code className="font-mono bg-muted px-2 py-1 rounded text-xs">
+              {decryptedVouchers[voucherId]?.amount || "***"}
+            </code>
+            {!decryptedVouchers[voucherId] && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleDecryptVoucher(voucherId)}
+                disabled={decrypting[voucherId] || !instance}
+                className="ml-2"
+              >
+                {decrypting[voucherId] ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Eye className="h-3 w-3" />
+                )}
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">{timestamp}</span>
+            {status === "Available" && (
+              <Button
+                size="sm"
+                onClick={() => handleRedeemVoucher(voucherId)}
+                disabled={isPending}
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+              >
+                {isPending ? "Redeeming..." : "Redeem"}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -83,89 +168,24 @@ const RecipientDashboard = () => {
           <h3 className="font-semibold text-xl">Your Aid Vouchers</h3>
         </div>
 
-        <div className="space-y-4">
-          {receivedVouchers.map((voucher) => (
-            <div
-              key={voucher.id}
-              className="p-4 bg-muted/20 rounded-lg border border-border/40 transition-smooth hover:shadow-soft"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary-soft rounded">
-                    {voucher.status === "Available" ? (
-                      <Gift className="h-4 w-4 text-primary" />
-                    ) : voucher.status === "Used" ? (
-                      <CheckCircle className="h-4 w-4 text-secondary" />
-                    ) : (
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="font-medium">{voucher.from}</h4>
-                    <p className="text-sm text-muted-foreground">{voucher.type}</p>
-                  </div>
-                </div>
-                
-                <Badge
-                  variant={voucher.status === "Available" ? "default" : "secondary"}
-                  className={
-                    voucher.status === "Available"
-                      ? "bg-accent text-accent-foreground"
-                      : voucher.status === "Used"
-                      ? "bg-secondary text-secondary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }
-                >
-                  {voucher.status}
-                </Badge>
+        {loadingVoucherIds ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <span className="text-muted-foreground">Loading your vouchers...</span>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {voucherIds && voucherIds.length > 0 ? (
+              voucherIds.map((voucherId: bigint) => (
+                <VoucherCard key={Number(voucherId)} voucherId={Number(voucherId)} />
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Gift className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No vouchers received yet</p>
+                <p className="text-sm">Connect your wallet to start receiving aid</p>
               </div>
-
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">Amount: </span>
-                  <code className="font-mono bg-muted px-2 py-1 rounded text-xs">
-                    {decryptedVouchers[parseInt(voucher.id)]?.amount || voucher.amount}
-                  </code>
-                  {!decryptedVouchers[parseInt(voucher.id)] && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDecryptVoucher(parseInt(voucher.id))}
-                      disabled={decrypting[parseInt(voucher.id)] || !instance}
-                      className="ml-2"
-                    >
-                      {decrypting[parseInt(voucher.id)] ? (
-                        <EyeOff className="h-3 w-3" />
-                      ) : (
-                        <Eye className="h-3 w-3" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">{voucher.timestamp}</span>
-                  {voucher.status === "Available" && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleRedeemVoucher(parseInt(voucher.id))}
-                      disabled={isPending}
-                      className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                    >
-                      {isPending ? "Redeeming..." : "Redeem"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {receivedVouchers.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Gift className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No vouchers received yet</p>
-            <p className="text-sm">Connect your wallet to start receiving aid</p>
+            )}
           </div>
         )}
       </Card>

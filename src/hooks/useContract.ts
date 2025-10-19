@@ -343,3 +343,14 @@ export const useNGODistributions = (ngoAddress: string) => {
 
   return { data, isLoading, error };
 };
+
+export const useVoucherEncryptedData = (voucherId: number) => {
+  const { data, isLoading, error } = useReadContract({
+    address: CONTRACT_ADDRESS as `0x${string}`,
+    abi: AidWellConnect.abi,
+    functionName: 'getVoucherEncryptedData',
+    args: [BigInt(voucherId)],
+  });
+
+  return { data, isLoading, error };
+};
