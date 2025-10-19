@@ -159,7 +159,7 @@ const NGODashboard = () => {
   }
 
   // If no NGO info exists or NGO data is empty, show registration form
-  if (!ngoData || !ngoData.name || ngoData.name.trim() === '') {
+  if (!ngoData || !ngoData.name || ngoData.name.trim() === '' || ngoData.name === '') {
     return (
       <div className="space-y-6">
         <Card className="p-6 shadow-card">

@@ -181,14 +181,21 @@ export const useAidWellContract = () => {
       const contract = new (await import('ethers')).Contract(CONTRACT_ADDRESS, AidWellConnect.abi, await signerPromise);
       const encryptedData = await contract.getVoucherEncryptedData(voucherId);
       
+      console.log('🔍 Encrypted data from contract:', encryptedData);
+      
       // Create keypair for decryption
       const keypair = instance.generateKeypair();
       
-      // Prepare handle-contract pairs
+      // Prepare handle-contract pairs - ensure handles are properly formatted
+      // Only decrypt the amount for now, as expiryTime is not encrypted in our contract
       const handleContractPairs = [
-        { handle: encryptedData.amount, contractAddress: CONTRACT_ADDRESS },
-        { handle: encryptedData.expiryTime, contractAddress: CONTRACT_ADDRESS }
+        { 
+          handle: encryptedData.amount, 
+          contractAddress: CONTRACT_ADDRESS 
+        }
       ];
+      
+      console.log('🔍 Handle-contract pairs:', handleContractPairs);
 
       // Create EIP712 signature
       const startTimeStamp = Math.floor(Date.now() / 1000).toString();
@@ -221,9 +228,13 @@ export const useAidWellContract = () => {
         durationDays
       );
 
+      console.log('🔍 Decryption result:', result);
+      console.log('🔍 Amount handle:', encryptedData.amount);
+      console.log('🔍 Decrypted amount:', result[encryptedData.amount]);
+
       return {
-        amount: result[encryptedData.amount]?.toString(),
-        expiryTime: result[encryptedData.expiryTime]?.toString(),
+        amount: result[encryptedData.amount]?.toString() || '0',
+        expiryTime: encryptedData.expiryTime?.toString() || '0', // This is not encrypted
         recipient: encryptedData.recipient,
         ngo: encryptedData.ngo,
         isRedeemed: encryptedData.isRedeemed,

@@ -25,21 +25,33 @@ const RecipientDashboard = () => {
   };
 
   const handleDecryptVoucher = async (voucherId: number) => {
+    console.log('🔓 Starting voucher decryption for voucher:', voucherId);
+    
     if (!instance) {
+      console.error('❌ Encryption service not available');
       alert('Encryption service not available');
+      return;
+    }
+
+    if (!address) {
+      console.error('❌ Wallet not connected');
+      alert('Please connect your wallet to decrypt voucher data');
       return;
     }
 
     setDecrypting(prev => ({ ...prev, [voucherId]: true }));
     try {
+      console.log('🔓 Calling decryptVoucherData...');
       const decryptedData = await decryptVoucherData(voucherId);
+      console.log('✅ Decryption successful:', decryptedData);
+      
       setDecryptedVouchers(prev => ({
         ...prev,
         [voucherId]: decryptedData
       }));
     } catch (error) {
-      console.error('Error decrypting voucher:', error);
-      alert('Failed to decrypt voucher data');
+      console.error('❌ Error decrypting voucher:', error);
+      alert(`Failed to decrypt voucher data: ${error.message || error}`);
     } finally {
       setDecrypting(prev => ({ ...prev, [voucherId]: false }));
     }
@@ -61,33 +73,14 @@ const RecipientDashboard = () => {
     }
   };
 
-  // Filter vouchers that belong to the current user
+  // For now, show all vouchers and let the user decrypt to verify ownership
+  // In a real implementation, you would need to implement proper access control
   useEffect(() => {
     if (!allVoucherIds || !address) return;
     
-    const checkUserVouchers = async () => {
-      const userVoucherIds: number[] = [];
-      
-      for (const voucherId of allVoucherIds) {
-        try {
-          // Try to get voucher info - this will work if user has permission
-          const { data: voucherInfo } = useVoucherInfo(Number(voucherId));
-          if (voucherInfo) {
-            // Check if this voucher belongs to the current user
-            // Since recipient is encrypted, we need to verify through decryption
-            // For now, we'll show all vouchers and let the user decrypt to verify
-            userVoucherIds.push(Number(voucherId));
-          }
-        } catch (error) {
-          // If we can't access the voucher, it doesn't belong to this user
-          console.log(`Voucher ${voucherId} not accessible to user ${address}:`, error);
-        }
-      }
-      
-      setUserVouchers(userVoucherIds);
-    };
-    
-    checkUserVouchers();
+    // For demonstration, show all vouchers
+    // In production, implement proper access control based on encrypted recipient
+    setUserVouchers(allVoucherIds.map(id => Number(id)));
   }, [allVoucherIds, address]);
 
   // VoucherCard component for individual voucher display
@@ -160,11 +153,18 @@ const RecipientDashboard = () => {
                 onClick={() => handleDecryptVoucher(voucherId)}
                 disabled={decrypting[voucherId] || !instance}
                 className="ml-2"
+                title={!instance ? "Encryption service not available" : "Click to decrypt amount"}
               >
                 {decrypting[voucherId] ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    Decrypting...
+                  </>
                 ) : (
-                  <Eye className="h-3 w-3" />
+                  <>
+                    <Eye className="h-3 w-3 mr-1" />
+                    Decrypt
+                  </>
                 )}
               </Button>
             )}

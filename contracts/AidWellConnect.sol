@@ -125,6 +125,13 @@ contract AidWellConnect is SepoliaConfig {
         FHE.allow(vouchers[voucherId].amount, msg.sender);
         FHE.allow(vouchers[voucherId].recipient, msg.sender);
         
+        // Also allow the recipient to decrypt their own data
+        // Note: This requires the recipient address to be known at creation time
+        // For now, we'll set a general permission that allows any user to decrypt
+        // In production, you might want to implement a more sophisticated ACL system
+        FHE.allow(vouchers[voucherId].amount, address(0)); // Allow anyone to decrypt amount
+        FHE.allow(vouchers[voucherId].recipient, address(0)); // Allow anyone to decrypt recipient
+        
         // Note: Since recipient is now encrypted, cannot be used directly for mapping
         // This needs to be handled during decryption or use other tracking methods
         // The recipient mapping will be handled off-chain through events
