@@ -38,35 +38,79 @@ export const useAidWellContract = () => {
     }
 
     try {
-      // Create encrypted input
-      const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
-      input.add32(amount);
-      const encryptedInput = await input.encrypt();
+      console.log('🚀 Starting FHE voucher creation process...');
+      console.log('📊 Input parameters:', { recipient, amount, expiryTime, purpose });
 
-      // Convert handles to proper format
+      // Validate input parameters
+      if (!recipient || recipient === '0x0000000000000000000000000000000000000000') {
+        throw new Error('Invalid recipient address');
+      }
+      if (amount <= 0 || amount > 4294967295) {
+        throw new Error('Amount must be between 1 and 4294967295');
+      }
+      if (expiryTime <= Math.floor(Date.now() / 1000)) {
+        throw new Error('Expiry time must be in the future');
+      }
+      if (!purpose || purpose.trim().length === 0) {
+        throw new Error('Purpose cannot be empty');
+      }
+
+      console.log('🔄 Step 1: Creating encrypted input...');
+      const input = instance.createEncryptedInput(CONTRACT_ADDRESS, address);
+      
+      console.log('🔄 Step 2: Adding amount to encrypted input...');
+      input.add32(BigInt(amount));
+      
+      console.log('🔄 Step 3: Encrypting data...');
+      const encryptedInput = await input.encrypt();
+      console.log('✅ Encryption completed, handles count:', encryptedInput.handles.length);
+
+      // Convert handles to proper format (32 bytes hex)
       const convertHex = (handle: any): string => {
-        if (typeof handle === 'string') {
-          return handle.startsWith('0x') ? handle : `0x${handle}`;
-        } else if (handle instanceof Uint8Array) {
-          return `0x${Array.from(handle).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+        let hex = '';
+        if (handle instanceof Uint8Array) {
+          hex = `0x${Array.from(handle).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+        } else if (typeof handle === 'string') {
+          hex = handle.startsWith('0x') ? handle : `0x${handle}`;
         } else if (Array.isArray(handle)) {
-          return `0x${handle.map(b => b.toString(16).padStart(2, '0')).join('')}`;
+          hex = `0x${handle.map(b => b.toString(16).padStart(2, '0')).join('')}`;
+        } else {
+          hex = `0x${handle.toString()}`;
         }
-        return `0x${handle.toString()}`;
+        
+        // Ensure exactly 32 bytes (66 characters including 0x)
+        if (hex.length < 66) {
+          hex = hex.padEnd(66, '0');
+        } else if (hex.length > 66) {
+          hex = hex.substring(0, 66);
+        }
+        return hex;
       };
 
       const handles = encryptedInput.handles.map(convertHex);
       const proof = `0x${Array.from(encryptedInput.inputProof as Uint8Array)
         .map(b => b.toString(16).padStart(2, '0')).join('')}`;
 
-      await writeContractAsync({
+      console.log('🔄 Step 4: Calling contract...');
+      console.log('📊 Contract call parameters:', {
+        recipient,
+        amountHandle: handles[0].substring(0, 10) + '...',
+        expiryTime,
+        purpose,
+        proofLength: proof.length
+      });
+
+      const result = await writeContractAsync({
         address: CONTRACT_ADDRESS as `0x${string}`,
         abi: AidWellConnect.abi,
         functionName: 'createVoucher',
         args: [recipient, handles[0], BigInt(expiryTime), purpose, proof],
       } as any);
+
+      console.log('✅ Voucher creation successful!');
+      return result;
     } catch (err) {
-      console.error('Error creating voucher:', err);
+      console.error('❌ Error creating voucher:', err);
       throw err;
     }
   };
