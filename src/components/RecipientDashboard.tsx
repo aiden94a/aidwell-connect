@@ -80,7 +80,7 @@ const RecipientDashboard = () => {
           }
         } catch (error) {
           // If we can't access the voucher, it doesn't belong to this user
-          console.log(`Voucher ${voucherId} not accessible to user ${address}`);
+          console.log(`Voucher ${voucherId} not accessible to user ${address}:`, error);
         }
       }
       

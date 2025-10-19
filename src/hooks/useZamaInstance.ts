@@ -14,6 +14,11 @@ export function useZamaInstance() {
       setIsLoading(true);
       setError(null);
 
+      // Check if ethereum provider is available
+      if (!(window as any).ethereum) {
+        throw new Error('Ethereum provider not found');
+      }
+
       await initSDK();
 
       const config = {
@@ -27,7 +32,7 @@ export function useZamaInstance() {
 
     } catch (err) {
       console.error('Failed to initialize Zama instance:', err);
-      setError('Failed to initialize encryption service');
+      setError('Failed to initialize encryption service. Please ensure you have a wallet connected.');
     } finally {
       setIsLoading(false);
     }
