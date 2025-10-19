@@ -127,6 +127,7 @@ contract AidWellConnect is SepoliaConfig {
         
         // Note: Since recipient is now encrypted, cannot be used directly for mapping
         // This needs to be handled during decryption or use other tracking methods
+        // The recipient mapping will be handled off-chain through events
         
         emit VoucherCreated(voucherId, address(0), msg.sender); // recipient address encrypted, use 0 address
         return voucherId;
@@ -252,7 +253,22 @@ contract AidWellConnect is SepoliaConfig {
     }
     
     function getRecipientVouchers(address recipient) public view returns (uint256[] memory) {
+        // Only the recipient themselves or verified NGOs can query vouchers
+        require(
+            msg.sender == recipient || 
+            ngoRegistrations[msg.sender].isVerified,
+            "Only recipient or verified NGOs can query vouchers"
+        );
         return recipientVouchers[recipient];
+    }
+    
+    // New function to get all vouchers for a recipient (works with encrypted recipients)
+    function getAllVouchers() public view returns (uint256[] memory) {
+        uint256[] memory allVouchers = new uint256[](voucherCounter);
+        for (uint256 i = 0; i < voucherCounter; i++) {
+            allVouchers[i] = i;
+        }
+        return allVouchers;
     }
     
     function getNGODistributions(address ngo) public view returns (uint256[] memory) {

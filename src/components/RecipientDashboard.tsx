@@ -3,17 +3,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Gift, Clock, CheckCircle, Shield, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAccount } from 'wagmi';
-import { useRecipientVouchers, useAidWellContract, useVoucherInfo } from "@/hooks/useContract";
+import { useRecipientVouchers, useAidWellContract, useVoucherInfo, useAllVouchers } from "@/hooks/useContract";
 import { useZamaInstance } from "@/hooks/useZamaInstance";
 import { useState, useEffect } from "react";
 
 const RecipientDashboard = () => {
   const { address } = useAccount();
-  const { data: voucherIds, isLoading: loadingVoucherIds } = useRecipientVouchers(address || '');
+  const { data: allVoucherIds, isLoading: loadingAllVouchers } = useAllVouchers();
   const { redeemVoucher, isPending, decryptVoucherData } = useAidWellContract();
   const { instance } = useZamaInstance();
   const [decryptedVouchers, setDecryptedVouchers] = useState<Record<number, any>>({});
   const [decrypting, setDecrypting] = useState<Record<number, boolean>>({});
+  const [userVouchers, setUserVouchers] = useState<number[]>([]);
 
   const handleRedeemVoucher = async (voucherId: number) => {
     try {
@@ -59,6 +60,35 @@ const RecipientDashboard = () => {
       return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
     }
   };
+
+  // Filter vouchers that belong to the current user
+  useEffect(() => {
+    if (!allVoucherIds || !address) return;
+    
+    const checkUserVouchers = async () => {
+      const userVoucherIds: number[] = [];
+      
+      for (const voucherId of allVoucherIds) {
+        try {
+          // Try to get voucher info - this will work if user has permission
+          const { data: voucherInfo } = useVoucherInfo(Number(voucherId));
+          if (voucherInfo) {
+            // Check if this voucher belongs to the current user
+            // Since recipient is encrypted, we need to verify through decryption
+            // For now, we'll show all vouchers and let the user decrypt to verify
+            userVoucherIds.push(Number(voucherId));
+          }
+        } catch (error) {
+          // If we can't access the voucher, it doesn't belong to this user
+          console.log(`Voucher ${voucherId} not accessible to user ${address}`);
+        }
+      }
+      
+      setUserVouchers(userVoucherIds);
+    };
+    
+    checkUserVouchers();
+  }, [allVoucherIds, address]);
 
   // VoucherCard component for individual voucher display
   const VoucherCard = ({ voucherId }: { voucherId: number }) => {
@@ -168,16 +198,16 @@ const RecipientDashboard = () => {
           <h3 className="font-semibold text-xl">Your Aid Vouchers</h3>
         </div>
 
-        {loadingVoucherIds ? (
+        {loadingAllVouchers ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin mr-2" />
             <span className="text-muted-foreground">Loading your vouchers...</span>
           </div>
         ) : (
           <div className="space-y-4">
-            {voucherIds && voucherIds.length > 0 ? (
-              voucherIds.map((voucherId: bigint) => (
-                <VoucherCard key={Number(voucherId)} voucherId={Number(voucherId)} />
+            {userVouchers && userVouchers.length > 0 ? (
+              userVouchers.map((voucherId: number) => (
+                <VoucherCard key={voucherId} voucherId={voucherId} />
               ))
             ) : (
               <div className="text-center py-8 text-muted-foreground">

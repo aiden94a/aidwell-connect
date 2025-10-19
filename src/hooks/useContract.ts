@@ -333,6 +333,16 @@ export const useRecipientVouchers = (recipientAddress: string) => {
   return { data, isLoading, error };
 };
 
+export const useAllVouchers = () => {
+  const { data, isLoading, error } = useReadContract({
+    address: CONTRACT_ADDRESS as `0x${string}`,
+    abi: AidWellConnect.abi,
+    functionName: 'getAllVouchers',
+  });
+
+  return { data, isLoading, error };
+};
+
 export const useNGODistributions = (ngoAddress: string) => {
   const { data, isLoading, error } = useReadContract({
     address: CONTRACT_ADDRESS as `0x${string}`,
